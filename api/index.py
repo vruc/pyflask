@@ -24,8 +24,8 @@ def convert_thread_url(url):
 def save_data(data):
     try:
         # 将 data 保存到 threads 集合中，如果集合不存在则自动创建，按 url 来判断
-        url = convert_thread_url(data['url'])
-        db['threads'].update_one({'url': url}, {'$set': data}, upsert=True)
+        # url = convert_thread_url(data['url'])
+        db['threads'].update_one({'url': data['url']}, {'$set': data}, upsert=True)
     except Exception as e:
         print(e)
 
