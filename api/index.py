@@ -11,10 +11,21 @@ db = client["sht"]
 
 app = Flask(__name__)
 
+def convert_thread_url(url):
+    import re
+    match = re.match(r"https://www.sehuatang.net/thread-(\d+)-(\d+)-(\d+)\.html", url)
+    if match:
+        num1 = match.group(1)
+        num2 = match.group(2)
+        return f"https://www.sehuatang.net/thread-{num1}-{num2}-1.html"
+    else:
+        return url
+
 def save_data(data):
     try:
         # 将 data 保存到 threads 集合中，如果集合不存在则自动创建，按 url 来判断
-        db['threads'].update_one({'url': data['url']}, {'$set': data}, upsert=True)
+        url = convert_thread_url(data['url'])
+        db['threads'].update_one({'url': url}, {'$set': data}, upsert=True)
     except Exception as e:
         print(e)
 
