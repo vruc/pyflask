@@ -6,29 +6,8 @@ from pymongo.server_api import ServerApi
 
 load_dotenv()
 
-print(f"VERCEL_ENV {os.getenv('VERCEL_ENV')}")
-print(f"1111 {os.getenv('mongo_sht_connection_string')}")
-print(f"2222 {os.environ.get('mongo_sht_connection_string')}")
-
-uri = os.environ.get('mongo_sht_connection_string')
-
-print(f"uri {os.getenv('uri')}")
-
-# 如果 password 为空，则停止运行
-# if not mongo_sht_connection_string:
-#     raise Exception("MongoDB connection is not set")
-
-# Create a new client and connect to the server
-client = MongoClient(uri, server_api=ServerApi('1'))
+client = MongoClient(os.environ.get('mongo_sht_connection_string'), server_api=ServerApi('1'))
 db = client["sht"]
-
-app = Flask(__name__)
-
-password = os.environ.get('mongo_pwd_sht')
-
-# 如果 password 为空，则停止运行
-if not password:
-    raise Exception("MongoDB password is not set")
 
 app = Flask(__name__)
 
