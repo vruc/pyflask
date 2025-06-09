@@ -72,6 +72,7 @@ def search():
     }
 
     response = requests.request("GET", url, headers=headers, data=payload)
+    print(response.text)
      # 使用 BeautifulSoup 解析 HTML 内容
     soup = BeautifulSoup(response.text, 'html.parser')
     # 查找所有 div.video-title 元素
@@ -96,6 +97,10 @@ def search():
             title_texts[index] = f"{q} " + text[len(q):]
     # 打印提取的文本内容
     print(title_texts)
+
+    if len(title_texts) == 0:
+        return jsonify([]), 404
+
     result = { 'title': title_texts[0], 'cover': cover_srcs[0] }
 
     # 保存结果到缓存文件
