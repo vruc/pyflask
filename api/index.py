@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 from flask import Flask, request, jsonify
 from pymongo.mongo_client import MongoClient
 from pymongo.server_api import ServerApi
+from bson.objectid import ObjectId
 import requests
 from bs4 import BeautifulSoup
 
@@ -165,6 +166,40 @@ def handle_save():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/files/migrate-file', methods=['POST'])
+def upload_file():
+    try:
+        payload = request.get_json()
+        if not payload:
+            return jsonify({'error': 'No JSON data provided'}), 400
+
+        required_fields = ["blobKey", "name", "companyId", "path", "source", "tags", "createdAt", "updatedAt"]
+        for field in required_fields:
+            if field not in payload:
+                return jsonify({'error': f'Missing required field: {field}'}), 400
+
+        mock_id = str(ObjectId())
+        result = {
+            "data": {
+                "id": mock_id,
+                "name": payload["name"],
+                "companyId": payload["companyId"],
+                "source": payload["source"],
+                "path": payload["path"],
+                "type": None,
+                "tags": payload["tags"],
+                "versions": {
+                    "1": {
+                        "createdAt": payload["createdAt"]
+                    }
+                },
+                "createdAt": payload["createdAt"],
+                "updatedAt": payload["updatedAt"]
+            }
+        }
+        return jsonify(result), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/')
 def home():
