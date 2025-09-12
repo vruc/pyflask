@@ -254,7 +254,7 @@ async def change_name_auto():
         icon = await fetch_weather()
         emoji = weather_emoji_map.get(icon, "")
         new_name = f"{time_str} {emoji}".strip()
-        return jsonify({ 'time': time_str, 'emoji': emoji, desc: new_name  })
+        return jsonify({ 'time': time_str, 'emoji': emoji, 'desc': new_name  })
     except Exception as e:
         print(f"自动改名失败: {str(e)}")
 
