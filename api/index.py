@@ -208,3 +208,76 @@ def home():
 @app.route('/about')
 def about():
     return 'About, with sht as the secret'
+
+_last_weather_update = None
+_cached_weather = None
+
+# 天气对应 emoji 表（根据OpenWeatherMap的icon代码对应）
+weather_emoji_map = {
+    "01d": "☀️",
+    "01n": "🎑",
+    "02d": "⛅",
+    "02n": "⛅",
+    "03d": "☁️",
+    "03n": "☁️",
+    "04d": "☁️",
+    "04n": "☁️",
+    "09d": "🌧",
+    "09n": "🌧",
+    "10d": "🌦",
+    "10n": "🌦",
+    "11d": "⛈",
+    "11n": "⛈",
+    "13d": "❄️",
+    "13n": "❄️",
+    "50d": "🌫",
+    "50n": "🌫",
+}
+
+def to_bold_digits(text: str) -> str:
+    """将时间数字转换为粗体 Unicode 字符"""
+    bold_digits = {
+        "0": "𝟬", "1": "𝟭", "2": "𝟮", "3": "𝟯", "4": "𝟰",
+        "5": "𝟱", "6": "𝟲", "7": "𝟳", "8": "𝟴", "9": "𝟵", ":": ":"
+    }
+    return ''.join(bold_digits.get(char, char) for char in text)
+
+@app.route('/fetch_weather', methods=['GET'])
+async def change_name_auto():
+    try:
+        # 获取北京时间
+        dt = datetime.utcnow().replace(tzinfo=timezone.utc).astimezone(timezone(timedelta(hours=8)))
+        time_str = to_bold_digits(dt.strftime("%H:%M"))
+
+        icon = await fetch_weather()
+        emoji = weather_emoji_map.get(icon, "")
+        new_name = f"{time_str} {emoji}".strip()
+        return jsonify({ 'time': time_str, 'emoji': emoji, desc: new_name  })
+    except Exception as e:
+        print(f"自动改名失败: {str(e)}")
+
+
+async def fetch_weather():
+    """从 OpenWeatherMap 获取广州当前天气 icon"""
+    global _last_weather_update, _cached_weather
+    now = datetime.utcnow()
+    if _last_weather_update and (now - _last_weather_update).total_seconds() < 3600:
+        return _cached_weather
+
+    api_key = "973e8a21e358ee9d30b47528b43a8746"  # 你的API Key
+    city = "Guangzhou"  # ← 改成了广州
+    url = f"http://api.openweathermap.org/data/2.5/weather?q={city}&appid={api_key}&lang=zh_cn&units=metric"
+
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url, timeout=10) as resp:
+                if resp.status == 200:
+                    data = await resp.json()
+                    icon = data["weather"][0]["icon"]
+                    _cached_weather = icon
+                    _last_weather_update = now
+                    return icon
+                else:
+                    return None
+    except Exception:
+        return None
