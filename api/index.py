@@ -211,8 +211,10 @@ def home():
 def about():
     return 'About, with sht as the secret'
 
-_last_weather_update = None
-_cached_weather = None
+# 按城市缓存天气数据
+_weather_cache = {}  # 格式: {city: {'icon': icon, 'last_update': datetime}}
+api_key = "973e8a21e358ee9d30b47528b43a8746"
+WEATHER_CACHE_EXPIRE_SECONDS = 1800  # 天气缓存过期时间（秒）
 
 # 天气对应 emoji 表（根据OpenWeatherMap的icon代码对应）
 weather_emoji_map = {
@@ -245,29 +247,39 @@ def to_bold_digits(text: str) -> str:
     return ''.join(bold_digits.get(char, char) for char in text)
 
 @app.route('/fetch_weather', methods=['GET'])
-async def change_name_auto():
+async def fetch_weather():
     try:
+        city = request.args.get('city', 'Guangzhou')  # 默认城市为广州
+        print(f"查询城市: {city}")
         # 获取北京时间
-        dt = datetime.utcnow().replace(tzinfo=timezone.utc).astimezone(timezone(timedelta(hours=8)))
-        time_str = to_bold_digits(dt.strftime("%H:%M"))
+        now = datetime.now(datetime.timezone.utc).astimezone(timezone(timedelta(hours=8)))
+        time_str = to_bold_digits(now.strftime("%H:%M"))
 
-        icon = await fetch_weather()
+        icon = await fetch_weather_from_api(city)
         emoji = weather_emoji_map.get(icon, "")
+        # 如果时间是晚上 22 点到早上 6 点，在 emoji 后面添加一个 🌃
+        if now.hour >= 22 and now.hour <= 6:
+            emoji += " 🌃"
         new_name = f"{time_str} {emoji}".strip()
-        return jsonify({ 'time': time_str, 'emoji': emoji, 'desc': new_name  })
+        print(new_name)
+        return jsonify({ 'time': time_str, 'emoji': emoji, 'desc': new_name, 'city': city  })
     except Exception as e:
         print(f"自动改名失败: {str(e)}")
 
 
-async def fetch_weather():
-    """从 OpenWeatherMap 获取广州当前天气 icon"""
-    global _last_weather_update, _cached_weather
-    now = datetime.utcnow()
-    if _last_weather_update and (now - _last_weather_update).total_seconds() < 3600:
-        return _cached_weather
+async def fetch_weather_from_api(city="Guangzhou"):
+    """从 OpenWeatherMap 获取指定城市当前天气 icon"""
+    global _weather_cache
+    now = datetime.now(datetime.timezone.utc).astimezone(timezone(timedelta(hours=8)))
+    
+    # 检查该城市是否有缓存且未过期（1小时内）
+    if city in _weather_cache:
+        cached_data = _weather_cache[city]
+        if (now - cached_data['last_update']).total_seconds() < WEATHER_CACHE_EXPIRE_SECONDS:
+            print(f"使用 {city} 的缓存天气数据")
+            return cached_data['icon']
 
-    api_key = "973e8a21e358ee9d30b47528b43a8746"  # 你的API Key
-    city = "Guangzhou"  # ← 改成了广州
+    # 你的API Key
     url = f"http://api.openweathermap.org/data/2.5/weather?q={city}&appid={api_key}&lang=zh_cn&units=metric"
 
     try:
@@ -276,10 +288,16 @@ async def fetch_weather():
                 if resp.status == 200:
                     data = await resp.json()
                     icon = data["weather"][0]["icon"]
-                    _cached_weather = icon
-                    _last_weather_update = now
+                    # 更新该城市的缓存
+                    _weather_cache[city] = {
+                        'icon': icon,
+                        'last_update': now
+                    }
+                    print(f"更新 {city} 的天气缓存")
                     return icon
                 else:
+                    print(f"获取 {city} 天气失败，状态码: {resp.status}")
                     return None
-    except Exception:
+    except Exception as e:
+        print(f"获取 {city} 天气异常: {e}")
         return None
