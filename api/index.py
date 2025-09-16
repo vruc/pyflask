@@ -252,7 +252,7 @@ async def fetch_weather():
         city = request.args.get('city', 'Guangzhou')  # 默认城市为广州
         print(f"查询城市: {city}")
         # 获取北京时间
-        now = datetime.now(datetime.timezone.utc).astimezone(timezone(timedelta(hours=8)))
+        now = datetime.utcnow().replace(tzinfo=timezone.utc).astimezone(timezone(timedelta(hours=8)))
         time_str = to_bold_digits(now.strftime("%H:%M"))
 
         icon = await fetch_weather_from_api(city)
@@ -270,7 +270,7 @@ async def fetch_weather():
 async def fetch_weather_from_api(city="Guangzhou"):
     """从 OpenWeatherMap 获取指定城市当前天气 icon"""
     global _weather_cache
-    now = datetime.now(datetime.timezone.utc).astimezone(timezone(timedelta(hours=8)))
+    now = datetime.utcnow().replace(tzinfo=timezone.utc).astimezone(timezone(timedelta(hours=8)))
     
     # 检查该城市是否有缓存且未过期（1小时内）
     if city in _weather_cache:
